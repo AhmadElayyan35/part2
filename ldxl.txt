@@ -4,29 +4,29 @@
 #include <math.h> // Include math library for angle calculation
 
 // LCD pin definitions
-const int rs = 12;   // Register select pin
-const int en = 11;   // Enable pin
-const int d4 = 6;   // Data pin 4
-const int d5 = 4;  // Data pin 5
-const int d6 = 8;  // Data pin 6
-const int d7 = 7;  // Data pin 7
+const int lcdRS = 12;   // Register select pin
+const int lcdEN = 11;   // Enable pin
+const int lcdD4 = 6;   // Data pin 4
+const int lcdD5 = 4;  // Data pin 5
+const int lcdD6 = 8;  // Data pin 6
+const int lcdD7 = 7;  // Data pin 7
 
 // Motor and ADXL345 pin definitions
-const int motorIn1 = 10;    // Motor input 1
-const int motorIn2 = 13;    // Motor input 2
-const int motorEnable = 9; // Motor enable pin (PWM)
+const int motorPin1 = 10;    // Motor input 1
+const int motorPin2 = 13;    // Motor input 2
+const int motorPWM = 9; // Motor enable pin (PWM)
 
 // Encoder pin definitions
-const int encoderC1 = 2; // Encoder Channel 1
-const int encoderC2 = 3; // Encoder Channel 2
+const int encoderPinA = 2; // Encoder Channel A
+const int encoderPinB = 3; // Encoder Channel B
 
 // Variables for encoder tracking
 volatile int encoderTicks = 0; // Count of encoder ticks
-int lastEncoderStateC1 = LOW;  // Previous state of C1
+int lastEncoderStateA = LOW;  // Previous state of Channel A
 unsigned long lastPrintTime = 0; // Last time encoder speed was printed
 
 // Initialize the LCD object
-LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
+LiquidCrystal lcd(lcdRS, lcdEN, lcdD4, lcdD5, lcdD6, lcdD7);
 
 // Initialize ADXL345 object
 Adafruit_ADXL345_Unified adxl = Adafruit_ADXL345_Unified(12345);
@@ -35,13 +35,13 @@ float previousAngle = 0; // Track the previous angle for relative movement
 
 void setup() {
   // Set motor pins as outputs
-  pinMode(motorIn1, OUTPUT);
-  pinMode(motorIn2, OUTPUT);
-  pinMode(motorEnable, OUTPUT);
+  pinMode(motorPin1, OUTPUT);
+  pinMode(motorPin2, OUTPUT);
+  pinMode(motorPWM, OUTPUT);
 
   // Set encoder pins as inputs
-  pinMode(encoderC1, INPUT);
-  pinMode(encoderC2, INPUT);
+  pinMode(encoderPinA, INPUT);
+  pinMode(encoderPinB, INPUT);
 
   // Initialize Serial communication
   Serial.begin(9600);
@@ -53,12 +53,12 @@ void setup() {
   lcd.clear();
 
   // Attach interrupt for encoder
-  attachInterrupt(digitalPinToInterrupt(encoderC1), encoderISR, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(encoderPinA), encoderISR, CHANGE);
 
   // Start with the motor off
-  digitalWrite(motorIn1, LOW);
-  digitalWrite(motorIn2, LOW);
-  analogWrite(motorEnable, 0); // Set PWM duty cycle to 0 (motor off)
+  digitalWrite(motorPin1, LOW);
+  digitalWrite(motorPin2, LOW);
+  analogWrite(motorPWM, 0); // Set PWM duty cycle to 0 (motor off)
   Serial.println("Motor is stopped.");
 
   // Initialize ADXL345
@@ -114,40 +114,40 @@ void moveMotor(float angle, bool forward) {
   int moveDuration = map(angle, 0, 360, 0, 2000); // Map angle to movement duration in milliseconds (adjust values as needed)
 
   if (forward) {
-    digitalWrite(motorIn1, HIGH);
-    digitalWrite(motorIn2, LOW);
+    digitalWrite(motorPin1, HIGH);
+    digitalWrite(motorPin2, LOW);
     Serial.println("Motor spinning forward.");
   } else {
-    digitalWrite(motorIn1, LOW);
-    digitalWrite(motorIn2, HIGH);
+    digitalWrite(motorPin1, LOW);
+    digitalWrite(motorPin2, HIGH);
     Serial.println("Motor spinning backward.");
   }
 
-  analogWrite(motorEnable, 150); // Set motor speed (adjust value as needed)
+  analogWrite(motorPWM, 150); // Set motor speed (adjust value as needed)
   delay(moveDuration); // Move motor for the calculated duration based on the angle
 
   stopMotor(); // Stop the motor after movement
 }
 
 void stopMotor() {
-  digitalWrite(motorIn1, LOW);
-  digitalWrite(motorIn2, LOW);
-  analogWrite(motorEnable, 0); // Disable motor
+  digitalWrite(motorPin1, LOW);
+  digitalWrite(motorPin2, LOW);
+  analogWrite(motorPWM, 0); // Disable motor
   Serial.println("Motor is stopped.");
 }
 
 // Interrupt Service Routine (ISR) for encoder
 void encoderISR() {
-  int c1State = digitalRead(encoderC1);
-  int c2State = digitalRead(encoderC2);
+  int c1State = digitalRead(encoderPinA);
+  int c2State = digitalRead(encoderPinB);
 
-  // Determine direction based on C1 and C2 states
-  if (c1State != lastEncoderStateC1) {
+  // Determine direction based on A and B states
+  if (c1State != lastEncoderStateA) {
     if (c2State != c1State) {
       encoderTicks++; // Forward direction
     } else {
       encoderTicks--; // Backward direction
     }
-    lastEncoderStateC1 = c1State;
+    lastEncoderStateA = c1State;
   }
 }
